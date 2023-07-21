@@ -11,11 +11,13 @@ import siteMetadata from '@/data/siteMetadata'
 import Analytics from '@/components/analytics'
 import LayoutWrapper from '@/components/LayoutWrapper'
 import { ClientReload } from '@/components/ClientReload'
-
+import { QueryClientProvider, QueryClient } from 'react-query'
 const isDevelopment = process.env.NODE_ENV === 'development'
 const isSocket = process.env.SOCKET
 
 export default function App({ Component, pageProps }) {
+  // Create a client
+  const queryClient = new QueryClient()
   return (
     <ThemeProvider attribute="class" defaultTheme={siteMetadata.theme}>
       <Head>
@@ -24,7 +26,9 @@ export default function App({ Component, pageProps }) {
       {isDevelopment && isSocket && <ClientReload />}
       <Analytics />
       <LayoutWrapper>
-        <Component {...pageProps} />
+        <QueryClientProvider client={queryClient}>
+          <Component {...pageProps} />
+        </QueryClientProvider>
       </LayoutWrapper>
     </ThemeProvider>
   )

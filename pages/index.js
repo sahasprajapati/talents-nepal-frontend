@@ -6,16 +6,42 @@ import { getAllFilesFrontMatter } from '@/lib/mdx'
 import formatDate from '@/lib/utils/formatDate'
 
 import NewsletterForm from '@/components/NewsletterForm'
+import { collection, limit, query } from 'firebase/firestore'
+import { firestore } from '@/lib/firebase'
+import { useFirestoreQuery } from '@react-query-firebase/firestore'
+import Card from '@/components/Card'
+import { useEffect, useState } from 'react'
 
 const MAX_DISPLAY = 5
 
-export async function getStaticProps() {
-  const posts = await getAllFilesFrontMatter('blog')
+export async function getServerSideProps() {
+  const sth = await getAllFilesFrontMatter('blog')
 
-  return { props: { posts } }
+  return { props: { sth } }
 }
 
-export default function Home({ posts }) {
+export default function Home({ sth }) {
+  const ref = query(collection(firestore, 'user_profile'), limit(6))
+
+  // Provide the query to the hook
+  const firestoreQuery = useFirestoreQuery(['user_profile'], ref)
+
+  const [participants, setParticipants] = useState([])
+  useEffect(() => {
+    if (firestoreQuery?.data) {
+      console.log('qu', firestoreQuery)
+      const snapshot = firestoreQuery.data
+      console.log('Dta', snapshot)
+      const data = snapshot?.docs?.map((docSnapshot) => {
+        const data = docSnapshot.data()
+        console.log('Data', data)
+        return data
+        // return <div key={docSnapshot.id}>{data.name}</div>
+      })
+      setParticipants(data)
+    }
+  }, [firestoreQuery.data])
+  console.log(participants)
   return (
     <>
       <PageSEO title={siteMetadata.title} description={siteMetadata.description} />
@@ -29,9 +55,9 @@ export default function Home({ posts }) {
           </p>
         </div>
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-          {!posts.length && 'No posts found.'}
-          {posts.slice(0, MAX_DISPLAY).map((frontMatter) => {
-            const { slug, date, title, summary, tags } = frontMatter
+          {!participants?.length && 'No participants found.'}
+          {participants?.map((participant) => {
+            const { slug, user_name, teamName } = participant
             return (
               <li key={slug} className="py-12">
                 <article>
@@ -39,39 +65,17 @@ export default function Home({ posts }) {
                     <dl>
                       <dt className="sr-only">Published on</dt>
                       <dd className="text-base font-medium leading-6 text-gray-500 dark:text-gray-400">
-                        <time dateTime={date}>{formatDate(date)}</time>
+                        Paid Status
                       </dd>
                     </dl>
                     <div className="space-y-5 xl:col-span-3">
-                      <div className="space-y-6">
-                        <div>
-                          <h2 className="text-2xl font-bold leading-8 tracking-tight">
-                            <Link
-                              href={`/blog/${slug}`}
-                              className="text-gray-900 dark:text-gray-100"
-                            >
-                              {title}
-                            </Link>
-                          </h2>
-                          <div className="flex flex-wrap">
-                            {tags.map((tag) => (
-                              <Tag key={tag} text={tag} />
-                            ))}
-                          </div>
-                        </div>
-                        <div className="prose max-w-none text-gray-500 dark:text-gray-400">
-                          {summary}
-                        </div>
-                      </div>
-                      <div className="text-base font-medium leading-6">
-                        <Link
-                          href={`/blog/${slug}`}
-                          className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                          aria-label={`Read "${title}"`}
-                        >
-                          Read more &rarr;
-                        </Link>
-                      </div>
+                      <Card
+                        key={'d.title'}
+                        title={user_name}
+                        description={teamName}
+                        imgSrc={''}
+                        href={'d.href'}
+                      />
                     </div>
                   </div>
                 </article>
@@ -80,14 +84,14 @@ export default function Home({ posts }) {
           })}
         </ul>
       </div>
-      {posts.length > MAX_DISPLAY && (
+      {participants.length > MAX_DISPLAY && (
         <div className="flex justify-end text-base font-medium leading-6">
           <Link
-            href="/blog"
+            href="/participants"
             className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-            aria-label="all posts"
+            aria-label="all participants"
           >
-            All Posts &rarr;
+            All participants &rarr;
           </Link>
         </div>
       )}
